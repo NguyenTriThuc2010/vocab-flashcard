@@ -1,15 +1,14 @@
-// --- FIREBASE CONFIGURATION ---
-// TODO: Replace with your actual Firebase config from Console -> Project Settings
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abcdef123456"
-};
 
+const firebaseConfig = {
+    apiKey: "AIzaSyBid11YgLIpzCfnlNXcGmy6czaYaF-ed6s",
+    authDomain: "vocab-50bbd.firebaseapp.com",
+    databaseURL: "https://vocab-50bbd-default-rtdb.firebaseio.com",
+    projectId: "vocab-50bbd",
+    storageBucket: "vocab-50bbd.firebasestorage.app",
+    messagingSenderId: "144446094577",
+    appId: "1:144446094577:web:579a916993cbe4b905bd50",
+    measurementId: "G-HGMMDBNTGM"
+};
 // Initialize Firebase
 let db;
 try {
@@ -52,7 +51,7 @@ const topicList = document.getElementById('topic-list');
 if (db) {
     db.ref('flashcards').on('value', (snapshot) => {
         const data = snapshot.val();
-        
+
         if (data) {
             // Convert object dictionary { key1: {...}, key2: {...} } into array
             ALL_VOCAB = Object.values(data);
@@ -69,7 +68,7 @@ if (db) {
                 ALL_VOCAB = [];
             }
         }
-        
+
         // Always refresh active cards
         applyFilter();
     });
@@ -81,10 +80,10 @@ function applyFilter() {
     } else {
         currentCards = ALL_VOCAB.filter(w => w.topic === currentTopic);
     }
-    
+
     // Bounds check
     if (currentIndex >= currentCards.length) currentIndex = 0;
-    
+
     renderTopics();
     updateUI();
 }
@@ -140,7 +139,7 @@ aiGenerateBtn.addEventListener('click', async () => {
     if (!key) return alert('Vui lòng nhập và lưu API Key trước!');
     const topicName = aiTopicInput.value.trim();
     if (!topicName) return alert('Vui lòng nhập tên chủ đề!');
-    
+
     if (!db) return alert("Firebase chưa được cấu hình! Hãy điền config vào app.js");
 
     aiLoading.style.display = 'block';
@@ -169,7 +168,7 @@ Trả về duy nhất dữ liệu dạng JSON mảng các object, không giải 
         });
 
         const data = await response.json();
-        if(data.error) throw new Error(data.error.message);
+        if (data.error) throw new Error(data.error.message);
 
         let jsonText = data.candidates[0].content.parts[0].text;
         jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -180,10 +179,10 @@ Trả về duy nhất dữ liệu dạng JSON mảng các object, không giải 
         newWords.forEach(word => {
             ref.push(word);
         });
-        
+
         currentTopic = topicName;
         // The list and UI will update automatically from Firebase listener 'value'
-        
+
         toggleSidebar();
         aiTopicInput.value = '';
         alert(`Đã yêu cầu AI tạo ${newWords.length} thẻ từ vựng mới và lưu lên Firebase!`);
@@ -211,7 +210,7 @@ function updateUI() {
         document.getElementById('card-example').textContent = 'Hãy tạo thêm từ vựng từ Sidebar.';
         document.getElementById('card-band').textContent = '';
         document.getElementById('collocations-container').style.display = 'none';
-        
+
         currentIdxEl.textContent = 0;
         totalIdxEl.textContent = 0;
         progressBar.style.width = '0%';
@@ -219,21 +218,21 @@ function updateUI() {
     }
 
     const card = currentCards[currentIndex];
-    
+
     // Front
     document.getElementById('card-topic').textContent = card.topic;
     document.getElementById('card-word').textContent = card.word;
     document.getElementById('card-pos').textContent = card.pos;
     document.getElementById('card-phonetic').textContent = card.phonetic;
-    
+
     // Back
     document.getElementById('card-topic-back').textContent = card.topic;
     document.getElementById('card-word-back').textContent = card.word;
     document.getElementById('card-pos-back').textContent = card.pos;
     document.getElementById('card-phonetic-back').textContent = card.phonetic;
-    
+
     document.getElementById('card-meaning').innerHTML = `<span class="lang-tag">VN</span> ${card.meaning_vn}`;
-    
+
     // Details
     const collBox = document.getElementById('collocations-container');
     if (card.collocations && card.collocations.length > 0) {
@@ -242,15 +241,15 @@ function updateUI() {
     } else {
         collBox.style.display = 'none';
     }
-    
+
     document.getElementById('card-example').textContent = card.example;
     document.getElementById('card-band').textContent = card.band;
-    
+
     // Progress
     currentIdxEl.textContent = currentIndex + 1;
     totalIdxEl.textContent = currentCards.length;
     progressBar.style.width = `${((currentIndex + 1) / currentCards.length) * 100}%`;
-    
+
     // Ensure card shows front when updated
     if (isFlipped) {
         flashcard.classList.remove('is-flipped');
@@ -260,7 +259,7 @@ function updateUI() {
 
 function changeCard(newIndex) {
     if (currentCards.length === 0) return;
-    
+
     if (isFlipped) {
         flashcard.classList.remove('is-flipped');
         isFlipped = false;
@@ -278,7 +277,7 @@ function changeCard(newIndex) {
 flashcard.addEventListener('click', () => {
     if (currentCards.length === 0) return;
     isFlipped = !isFlipped;
-    if(isFlipped) {
+    if (isFlipped) {
         flashcard.classList.add('is-flipped');
     } else {
         flashcard.classList.remove('is-flipped');
@@ -344,7 +343,7 @@ function handleSwipe() {
 
 // Keyboard navigation
 document.addEventListener('keydown', e => {
-    if(e.code === 'Space') {
+    if (e.code === 'Space') {
         flashcard.click();
         e.preventDefault();
     } else if (e.code === 'ArrowRight') {
