@@ -1,19 +1,145 @@
+let currentTopic = 'All';
 let currentCards = [...VOCAB_DATA];
 let currentIndex = 0;
 let isFlipped = false;
 
-// DOM Elements
+// DOM Elements - Main
 const flashcard = document.getElementById('flashcard');
 const progressBar = document.getElementById('progress-bar');
 const currentIdxEl = document.getElementById('current-idx');
 const totalIdxEl = document.getElementById('total-idx');
 
-// Buttons
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
 const btnShuffle = document.getElementById('btn-shuffle');
 
+// DOM Elements - Sidebar
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const menuBtn = document.getElementById('menu-btn');
+const closeBtn = document.getElementById('close-btn');
+const apiKeyInput = document.getElementById('api-key-input');
+const saveKeyBtn = document.getElementById('save-key-btn');
+const aiTopicInput = document.getElementById('ai-topic-input');
+const aiGenerateBtn = document.getElementById('ai-generate-btn');
+const aiLoading = document.getElementById('ai-loading');
+const topicList = document.getElementById('topic-list');
+
+// --- SIDEBAR & SETTINGS --- //
+function toggleSidebar() {
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+}
+
+menuBtn.addEventListener('click', toggleSidebar);
+closeBtn.addEventListener('click', toggleSidebar);
+overlay.addEventListener('click', toggleSidebar);
+
+const savedKey = localStorage.getItem('gemini_api_key');
+if (savedKey) apiKeyInput.value = savedKey;
+
+saveKeyBtn.addEventListener('click', () => {
+    localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+    alert('Đã lưu API Key!');
+});
+
+function renderTopics() {
+    const topicMap = {};
+    VOCAB_DATA.forEach(word => {
+        topicMap[word.topic] = (topicMap[word.topic] || 0) + 1;
+    });
+
+    topicList.innerHTML = `<li class="topic-item ${currentTopic === 'All' ? 'active' : ''}" data-topic="All">
+        <span>Tất cả</span>
+        <span class="topic-count">${VOCAB_DATA.length}</span>
+    </li>`;
+
+    Object.keys(topicMap).forEach(topic => {
+        topicList.innerHTML += `<li class="topic-item ${currentTopic === topic ? 'active' : ''}" data-topic="${topic}">
+            <span>${topic}</span>
+            <span class="topic-count">${topicMap[topic]}</span>
+        </li>`;
+    });
+
+    document.querySelectorAll('.topic-item').forEach(item => {
+        item.addEventListener('click', () => {
+            currentTopic = item.dataset.topic;
+            if (currentTopic === 'All') {
+                currentCards = [...VOCAB_DATA];
+            } else {
+                currentCards = VOCAB_DATA.filter(w => w.topic === currentTopic);
+            }
+            currentIndex = 0;
+            updateUI();
+            renderTopics();
+            toggleSidebar();
+        });
+    });
+}
+
+// --- AI GENERATION --- //
+aiGenerateBtn.addEventListener('click', async () => {
+    const key = localStorage.getItem('gemini_api_key');
+    if (!key) return alert('Vui lòng nhập và lưu API Key trước!');
+    const topicName = aiTopicInput.value.trim();
+    if (!topicName) return alert('Vui lòng nhập tên chủ đề!');
+
+    aiLoading.style.display = 'block';
+    aiGenerateBtn.disabled = true;
+
+    try {
+        const prompt = `Tạo 5 từ vựng/cụm từ học thuật tiếng Anh ở trình độ IELTS Band 7.0 trở lên chuyên sâu về chủ đề: "${topicName}".
+Trả về duy nhất dữ liệu dạng JSON mảng các object, không giải thích thêm, thiết lập field như sau:
+[
+  {
+    "topic": "${topicName}",
+    "word": "từ_vựng",
+    "pos": "từ_loại_viết_tắt(VD: n. v. adj.)",
+    "phonetic": "/phiên_âm/",
+    "meaning_vn": "nghĩa_tiếng_việt",
+    "collocations": ["cụm 1", "cụm 2"],
+    "example": "ví_dụ_tiếng_anh",
+    "band": "Band 7+"
+  }
+]`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await response.json();
+        if(data.error) throw new Error(data.error.message);
+
+        let jsonText = data.candidates[0].content.parts[0].text;
+        jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const newWords = JSON.parse(jsonText);
+
+        VOCAB_DATA.push(...newWords);
+        
+        currentTopic = topicName;
+        currentCards = VOCAB_DATA.filter(w => w.topic === currentTopic);
+        currentIndex = 0;
+        
+        renderTopics();
+        updateUI();
+        toggleSidebar();
+        aiTopicInput.value = '';
+        alert(`Đã tạo thành công ${newWords.length} thẻ từ vựng mới!`);
+
+    } catch (err) {
+        alert('Có lỗi xảy ra hoặc API trả về không chuẩn: ' + err.message);
+    } finally {
+        aiLoading.style.display = 'none';
+        aiGenerateBtn.disabled = false;
+    }
+});
+
+// --- CARD UI & LOGIC --- //
 function updateUI() {
+    if (currentCards.length === 0) return;
+
     const card = currentCards[currentIndex];
     
     // Front
@@ -147,5 +273,8 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// init
-window.addEventListener('DOMContentLoaded', updateUI);
+// Init
+window.addEventListener('DOMContentLoaded', () => {
+    renderTopics();
+    updateUI();
+});

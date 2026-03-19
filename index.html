@@ -15,12 +15,51 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Sidebar Overlay & Menu -->
+    <div class="overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Cài Đặt & Học</h2>
+            <button class="close-btn" id="close-btn">&times;</button>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3 class="section-title">Gemini API Key</h3>
+            <p style="font-size: 11px; color:#555; margin-bottom:8px">Nhập miễn phí từ Google AI Studio.</p>
+            <input type="password" id="api-key-input" class="sidebar-input" placeholder="Nhập API Key...">
+            <button class="sidebar-btn" id="save-key-btn">Lưu Key</button>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="section-title">Tạo Từ Bằng AI</h3>
+            <input type="text" id="ai-topic-input" class="sidebar-input" placeholder="Chủ đề (VD: Technology)">
+            <button class="sidebar-btn ai-btn" id="ai-generate-btn">Tạo 5 Flashcard</button>
+            <p class="loading-text" id="ai-loading" style="display: none;">Đang tạo từ vựng...</p>
+        </div>
+
+        <div class="sidebar-section list-section">
+            <h3 class="section-title">Chọn Chủ Đề Học</h3>
+            <ul id="topic-list" class="topic-list">
+                <!-- Topics rendered here by JS -->
+            </ul>
+        </div>
+    </aside>
+
     <div class="app-container">
         <!-- Header: Progress Bar -->
         <header class="header">
-            <div class="progress-text"><span id="current-idx">1</span> / <span id="total-idx">16</span></div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
+            <button class="menu-btn" id="menu-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="progress-wrapper">
+                <div class="progress-text"><span id="current-idx">1</span> / <span id="total-idx">16</span></div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
             </div>
         </header>
 
