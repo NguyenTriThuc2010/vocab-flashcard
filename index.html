@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vocab Flashcard</title>
+    
+    <!-- iOS / PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="VocabCard">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header: Progress Bar -->
+        <header class="header">
+            <div class="progress-text"><span id="current-idx">1</span> / <span id="total-idx">16</span></div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </header>
+
+        <!-- Main Content: Flashcard -->
+        <main class="flashcard-container">
+            <div class="flashcard" id="flashcard">
+                
+                <!-- Front Side -->
+                <div class="card-face card-front">
+                    <div class="topic-badge" id="card-topic">Topic</div>
+                    <div class="word-group">
+                        <h1 class="word" id="card-word">word</h1>
+                        <p class="pos" id="card-pos">pos</p>
+                        <p class="phonetic" id="card-phonetic">/phonetic/</p>
+                    </div>
+                    <p class="flip-hint">Nhấn để xem nghĩa & ví dụ Writing</p>
+                </div>
+                
+                <!-- Back Side -->
+                <div class="card-face card-back">
+                    <div class="topic-badge" id="card-topic-back">Topic</div>
+                    <div class="word-group word-group-back">
+                        <h1 class="word word-small" id="card-word-back">word</h1>
+                        <p class="pos" id="card-pos-back">pos</p>
+                        <p class="phonetic" id="card-phonetic-back">/phonetic/</p>
+                        <p class="meaning" id="card-meaning">
+                            <span class="lang-tag">VN</span> meaning
+                        </p>
+                    </div>
+                    
+                    <div class="details-group">
+                        <div class="collocations-box" id="collocations-container">
+                            <strong>Collocations:</strong> <span id="card-collocations"></span>
+                        </div>
+                        <div class="example-box">
+                            <span class="vertical-line"></span>
+                            <p class="example-text" id="card-example">example</p>
+                        </div>
+                        <div class="band-badge" id="card-band">Band 7+</div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Footer Controls -->
+        <footer class="controls">
+            <button class="btn" id="btn-prev">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path>
+                </svg>
+                Trước
+            </button>
+            <button class="btn" id="btn-next">
+                Tiếp
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path>
+                </svg>
+            </button>
+            <button class="btn" id="btn-shuffle">
+                Xáo trộn
+            </button>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="words.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('ServiceWorker registered'))
+                    .catch(err => console.log('ServiceWorker error', err));
+            });
+        }
+    </script>
+</body>
+</html>
