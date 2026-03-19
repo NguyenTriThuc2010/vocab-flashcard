@@ -1,5 +1,28 @@
+// --- FIREBASE CONFIGURATION ---
+// TODO: Replace with your actual Firebase config from Console -> Project Settings
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "1234567890",
+    appId: "1:1234567890:web:abcdef123456"
+};
+
+// Initialize Firebase
+let db;
+try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+} catch (e) {
+    console.error("Firebase initialization error. Make sure to update firebaseConfig.", e);
+}
+
+// Global States
+let ALL_VOCAB = [];
 let currentTopic = 'All';
-let currentCards = [...VOCAB_DATA];
+let currentCards = [];
 let currentIndex = 0;
 let isFlipped = false;
 
@@ -25,6 +48,47 @@ const aiGenerateBtn = document.getElementById('ai-generate-btn');
 const aiLoading = document.getElementById('ai-loading');
 const topicList = document.getElementById('topic-list');
 
+// --- FIREBASE REALTIME DB LISTENER ---
+if (db) {
+    db.ref('flashcards').on('value', (snapshot) => {
+        const data = snapshot.val();
+        
+        if (data) {
+            // Convert object dictionary { key1: {...}, key2: {...} } into array
+            ALL_VOCAB = Object.values(data);
+        } else {
+            // If DB is completely empty, push seed data from words.js to Firebase
+            if (typeof VOCAB_DATA !== 'undefined' && VOCAB_DATA.length > 0) {
+                console.log("Seeding Firebase with words.js...");
+                ALL_VOCAB = [...VOCAB_DATA];
+                const ref = db.ref('flashcards');
+                ALL_VOCAB.forEach(word => {
+                    ref.push(word);
+                });
+            } else {
+                ALL_VOCAB = [];
+            }
+        }
+        
+        // Always refresh active cards
+        applyFilter();
+    });
+}
+
+function applyFilter() {
+    if (currentTopic === 'All') {
+        currentCards = [...ALL_VOCAB];
+    } else {
+        currentCards = ALL_VOCAB.filter(w => w.topic === currentTopic);
+    }
+    
+    // Bounds check
+    if (currentIndex >= currentCards.length) currentIndex = 0;
+    
+    renderTopics();
+    updateUI();
+}
+
 // --- SIDEBAR & SETTINGS --- //
 function toggleSidebar() {
     sidebar.classList.toggle('active');
@@ -40,18 +104,18 @@ if (savedKey) apiKeyInput.value = savedKey;
 
 saveKeyBtn.addEventListener('click', () => {
     localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
-    alert('Đã lưu API Key!');
+    alert('Đã lưu API Key Gemini!');
 });
 
 function renderTopics() {
     const topicMap = {};
-    VOCAB_DATA.forEach(word => {
+    ALL_VOCAB.forEach(word => {
         topicMap[word.topic] = (topicMap[word.topic] || 0) + 1;
     });
 
     topicList.innerHTML = `<li class="topic-item ${currentTopic === 'All' ? 'active' : ''}" data-topic="All">
         <span>Tất cả</span>
-        <span class="topic-count">${VOCAB_DATA.length}</span>
+        <span class="topic-count">${ALL_VOCAB.length}</span>
     </li>`;
 
     Object.keys(topicMap).forEach(topic => {
@@ -64,14 +128,7 @@ function renderTopics() {
     document.querySelectorAll('.topic-item').forEach(item => {
         item.addEventListener('click', () => {
             currentTopic = item.dataset.topic;
-            if (currentTopic === 'All') {
-                currentCards = [...VOCAB_DATA];
-            } else {
-                currentCards = VOCAB_DATA.filter(w => w.topic === currentTopic);
-            }
-            currentIndex = 0;
-            updateUI();
-            renderTopics();
+            applyFilter();
             toggleSidebar();
         });
     });
@@ -83,6 +140,8 @@ aiGenerateBtn.addEventListener('click', async () => {
     if (!key) return alert('Vui lòng nhập và lưu API Key trước!');
     const topicName = aiTopicInput.value.trim();
     if (!topicName) return alert('Vui lòng nhập tên chủ đề!');
+    
+    if (!db) return alert("Firebase chưa được cấu hình! Hãy điền config vào app.js");
 
     aiLoading.style.display = 'block';
     aiGenerateBtn.disabled = true;
@@ -116,17 +175,18 @@ Trả về duy nhất dữ liệu dạng JSON mảng các object, không giải 
         jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
         const newWords = JSON.parse(jsonText);
 
-        VOCAB_DATA.push(...newWords);
+        // Đẩy từ mới thẳng lên Firebase Realtime Database
+        const ref = db.ref('flashcards');
+        newWords.forEach(word => {
+            ref.push(word);
+        });
         
         currentTopic = topicName;
-        currentCards = VOCAB_DATA.filter(w => w.topic === currentTopic);
-        currentIndex = 0;
+        // The list and UI will update automatically from Firebase listener 'value'
         
-        renderTopics();
-        updateUI();
         toggleSidebar();
         aiTopicInput.value = '';
-        alert(`Đã tạo thành công ${newWords.length} thẻ từ vựng mới!`);
+        alert(`Đã yêu cầu AI tạo ${newWords.length} thẻ từ vựng mới và lưu lên Firebase!`);
 
     } catch (err) {
         alert('Có lỗi xảy ra hoặc API trả về không chuẩn: ' + err.message);
@@ -138,7 +198,25 @@ Trả về duy nhất dữ liệu dạng JSON mảng các object, không giải 
 
 // --- CARD UI & LOGIC --- //
 function updateUI() {
-    if (currentCards.length === 0) return;
+    if (currentCards.length === 0) {
+        document.getElementById('card-topic').textContent = '?';
+        document.getElementById('card-word').textContent = 'Trống';
+        document.getElementById('card-pos').textContent = '';
+        document.getElementById('card-phonetic').textContent = '';
+        document.getElementById('card-topic-back').textContent = '?';
+        document.getElementById('card-word-back').textContent = 'Chưa có dữ liệu';
+        document.getElementById('card-pos-back').textContent = '';
+        document.getElementById('card-phonetic-back').textContent = '';
+        document.getElementById('card-meaning').innerHTML = '';
+        document.getElementById('card-example').textContent = 'Hãy tạo thêm từ vựng từ Sidebar.';
+        document.getElementById('card-band').textContent = '';
+        document.getElementById('collocations-container').style.display = 'none';
+        
+        currentIdxEl.textContent = 0;
+        totalIdxEl.textContent = 0;
+        progressBar.style.width = '0%';
+        return;
+    }
 
     const card = currentCards[currentIndex];
     
@@ -181,6 +259,8 @@ function updateUI() {
 }
 
 function changeCard(newIndex) {
+    if (currentCards.length === 0) return;
+    
     if (isFlipped) {
         flashcard.classList.remove('is-flipped');
         isFlipped = false;
@@ -196,6 +276,7 @@ function changeCard(newIndex) {
 
 // Events
 flashcard.addEventListener('click', () => {
+    if (currentCards.length === 0) return;
     isFlipped = !isFlipped;
     if(isFlipped) {
         flashcard.classList.add('is-flipped');
@@ -273,8 +354,7 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Init
+// Init if completely offline or firebase fails
 window.addEventListener('DOMContentLoaded', () => {
-    renderTopics();
     updateUI();
 });

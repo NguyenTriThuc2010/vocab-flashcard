@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vocab-flashcard-v2';
+const CACHE_NAME = 'vocab-flashcard-v3';
 const ASSETS = [
   './',
   './index.html',
